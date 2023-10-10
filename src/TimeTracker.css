@@ -1,0 +1,22 @@
+
+/* TimeTracker.css */
+.table {
+    width: 100%;
+    max-width: 600px; /* Adjust the maximum width as needed */
+    margin-top: 20px;
+  }
+  
+  .table th {
+    background-color: #007bff;
+    color: #fff;
+  }
+  
+  .table th,
+  .table td {
+    text-align: center;
+  }
+  
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f8f9fa; /* Alternate row background color */
+  }
+  
