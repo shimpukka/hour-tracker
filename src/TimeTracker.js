@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./TimeTracker.css"; // Import custom CSS for styling
+import "./TimeTracker.css";
+import { db } from './firebase';
+import { collection, addDoc, doc, getDocs } from 'firebase/firestore';
+
+// read firestore data
+const querySnapshot = await getDocs(collection(db, "workHours"));
+querySnapshot.forEach((doc) => {
+  console.log(`${doc.id} => ${JSON.stringify(doc.data())}`);
+});
 
 function TimeTracker() {
   const [workType, setWorkType] = useState("");
@@ -18,7 +26,7 @@ function TimeTracker() {
   }, []);
   
 
-  const handleAddWork = (e) => {
+  const handleAddWork = async (e) => {
     e.preventDefault();
 
     if (workType && workHours) {
@@ -31,6 +39,19 @@ function TimeTracker() {
       setWorkLog([...workLog, newWorkLog]);
       setWorkType("");
       setWorkHours("");
+
+      // add data to firestore, collection will be created automatically
+      try {
+        const docRef = await addDoc(collection(db, "workHours"), {
+          date: today,
+          type: workType,
+          hours: parseFloat(workHours)
+        });
+        console.log("Document written with ID: ", docRef.id);
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
+
 
       // Save to local storage
         const updatedWorkLog = [...workLog, newWorkLog];
