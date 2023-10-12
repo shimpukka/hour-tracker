@@ -2,13 +2,8 @@ import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./TimeTracker.css";
 import { db } from './firebase';
-import { collection, addDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, getDocs, deleteDoc } from 'firebase/firestore';
 
-// read firestore data
-const querySnapshot = await getDocs(collection(db, "workHours"));
-querySnapshot.forEach((doc) => {
-  console.log(`${doc.id} => ${JSON.stringify(doc.data())}`);
-});
 
 function TimeTracker() {
   const [workType, setWorkType] = useState("");
@@ -17,12 +12,20 @@ function TimeTracker() {
   const today = new Date().toLocaleDateString();
 
   useEffect(() => {
-    // Get work log data from local storage
-    const savedWorkLog = localStorage.getItem('workLog');
-  
-    if (savedWorkLog) {
-      setWorkLog(JSON.parse(savedWorkLog));
-    }
+    const fetchData = async () => {
+      try {
+        // get work log data from firestore and store it to workLog state
+        const querySnapshot = await getDocs(collection(db, "workHours"));
+        const data = querySnapshot.docs
+                    .map((doc) => ({...doc.data(), id:doc.id }));
+
+        setWorkLog(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
   }, []);
   
 
@@ -30,15 +33,7 @@ function TimeTracker() {
     e.preventDefault();
 
     if (workType && workHours) {
-      const newWorkLog = {
-        date: today,
-        type: workType,
-        hours: parseFloat(workHours),
-      };
-
-      setWorkLog([...workLog, newWorkLog]);
-      setWorkType("");
-      setWorkHours("");
+      
 
       // add data to firestore, collection will be created automatically
       try {
@@ -48,14 +43,39 @@ function TimeTracker() {
           hours: parseFloat(workHours)
         });
         console.log("Document written with ID: ", docRef.id);
+
+        const newWorkLog = {
+          date: today,
+          type: workType,
+          hours: parseFloat(workHours),
+          id: docRef.id
+        };
+  
+        setWorkLog([...workLog, newWorkLog]);
+        setWorkType("");
+        setWorkHours("");
+
       } catch (e) {
         console.error("Error adding document: ", e);
       }
+    }
+  };
 
+  const handleDelete = async e => {
+    // delete item from firestore
+    const docId = e.target.dataset.id;
+    await deleteDoc(doc(db, "workHours", docId));
 
-      // Save to local storage
-        const updatedWorkLog = [...workLog, newWorkLog];
-        localStorage.setItem('workLog', JSON.stringify(updatedWorkLog));
+    // Find the index of the element with the desired ID
+    const indexToDelete = workLog.findIndex(obj => obj.id === docId);
+
+    // If the index is found (not -1), create a new array without the element
+    if (indexToDelete !== -1) {
+      const updatedArray = [...workLog];
+      updatedArray.splice(indexToDelete, 1);
+
+      // Update the state with the new array
+      setWorkLog(updatedArray);
     }
   };
 
@@ -108,7 +128,7 @@ function TimeTracker() {
             </div>
           </div>
           <div className="col d-flex justify-content-end align-items-end">
-            <button className="btn btn-primary" type="submit">
+            <button className="btn btn-secondary" type="submit">
               Add Work
             </button>
           </div>
@@ -128,7 +148,7 @@ function TimeTracker() {
           <tbody>
             {filterTodayWork().map((entry, index) => (
               <tr key={index}>
-                <td>{entry.type}</td>
+                <td>{entry.type} <button onClick={handleDelete} data-id={entry.id}>x</button></td>
                 <td>{entry.hours}</td>
               </tr>
             ))}

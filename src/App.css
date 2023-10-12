@@ -44,3 +44,7 @@
 body {
   font-family: 'Inter', sans-serif !important;
 }
+
+.table th {
+  background-color: #3d8550 !important;
+}
